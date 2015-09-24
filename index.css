@@ -1,0 +1,114 @@
+html {
+    background-image: url(images/img.jpg);
+    background-position: center;
+    background-size: cover;
+}
+body {
+    background-color: transparent;
+}
+.container {
+    margin: 10px;
+    border: solid gray 1px;
+    width: 800px;
+    border-radius: 7px;
+    margin: 0 auto;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    height: 400px;
+    margin-top: 30px;
+}
+
+.cell {
+    text-align: left;
+    background-position: center;
+    background-color: rgba(248, 247, 186, 0.9);
+    width: 95%;
+    height: 40%;
+    margin: 0 auto;
+    margin-top: 30px;
+    border-radius: 7px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 10px;
+    font-size: 20px;
+    resize: none;
+}
+
+.player-container {
+    width: 600px;
+    height: 40px;
+    border: solid gray 1px;
+    margin-top: -15px;
+    background-color: rgba(0, 0, 0, 0.95);
+    text-align: left;
+    padding-left: 0px;
+}
+
+.p-item {
+    height: 80%;
+    width: 40px;
+    background-color: rgba(201, 197, 198, 0.9);
+    border: solid gray 1px;
+    border-radius: 7px;
+    margin-top: 3px;
+    float: left;
+    margin-left: 5px;
+}
+
+.progressBar {
+    height: 10px;
+    margin-top: 13px;
+    margin-left: 20px;
+    cursor: pointer;
+    width: 460px;
+}
+
+.slider {
+    width: 10px;
+    height: 26px;
+    margin-top: -9px;
+    position: absolute;
+    cursor: pointer;
+    margin-left: 2px;
+    background-color: rgba(201, 197, 198, 1);
+}
+.btn-nav-container {
+    width: 209px;
+    height: 60px;
+    margin-top: 5px;
+}
+.btn-nav {
+    margin-top: 5px;
+    width: 80px;
+}
+.nav {
+    background-repeat: no-repeat; 
+    background-position: center; 
+    background-size: contain;
+}
+.refresh {
+    background-image: url(images/sinchronize.png); 
+}
+.play {
+    background-image: url(images/play.png);
+}
+.left {
+    background-image: url(images/playBack.png); 
+}
+textarea {
+    width: 300px;
+    height: 300px;
+    border-radius: 10px;
+    box-shadow: 0 0 0 3px #000;
+    border: 5px solid transparent;
+}
+::selection {
+    background-color: rgba(60, 170, 60, 0.4);
+    background-color: rgba(41, 106, 60, 0.5);
+    border: solid gray 1px;
+    border-radius: 7px;
+}
+::-moz-selection { /* Code for Firefox */
+    background: #ffb7b7;
+    color: red;
+}

@@ -1,0 +1,33 @@
+﻿<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>3Dbook</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="index.css">
+    <script src="jquery-1.11.3.min.js"></script>
+    <script src="model.js"></script>
+    <script src="index.js"></script>
+</head>
+<body>
+    <audio id="player" preload="auto" src=""></audio>
+    <div class="container">
+        <textarea id="t_area1" class="cell" readonly>
+        </textarea>
+        <textarea id="t_area2" class="cell" readonly style="margin-top: 10px;">
+        </textarea>
+    </div>
+    <div class="container player-container">
+        <div id="refresh" class="p-item btn nav refresh"></div>
+        <div id="play"    class="p-item btn nav play"></div>
+        <div id="p-bar"   class="p-item progressBar">
+            <div id="slider" class="p-item slider"></div>
+        </div>
+    </div>
+    <div class="container btn-nav-container">
+        <div id="prev" class="p-item btn btn-nav nav left"></div>
+        <div id="next" class="p-item btn btn-nav nav play"></div>
+    </div>
+</body>
+</html>
