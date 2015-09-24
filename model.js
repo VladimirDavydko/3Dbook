@@ -4,6 +4,7 @@
             text1 : '   Mr. Hungerton, her father, really was the most tactless person upon earth, a fluffy, feathery, untidy cockatoo of a man, perfectly good-natured, but absolutely centered upon his own silly self.',
             text2 : '    Мистер Хангертон, отец моей Глэдис, отличался невероятной бестактностью и был похож на распушившего перья неопрятного какаду, правда, весьма добродушного, но занятого исключительно собственной персоной.',
             src : 'https://www.dropbox.com/s/o1y0lmedcre60t7/1.mp3?dl=1'
+            //src : 'sounds/1.mp3'
         },
         {
             text1 : '    If anything could have driven me from Gladys, it would have been the thought of such a father-in-law.',
