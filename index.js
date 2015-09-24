@@ -4,9 +4,9 @@ $(function () {
     // **                    global variables                           **
     // *******************************************************************
 
-    var player = document.getElementById('player');
-    var slider = document.getElementById('slider');
-    var p_bar = document.getElementById('p-bar');
+    var player  = document.getElementById('player');
+    var slider  = document.getElementById('slider');
+    var p_bar   = document.getElementById('p-bar');
     var t_area1 = document.getElementById('t_area1');
     var t_area2 = document.getElementById('t_area2');
 
@@ -20,8 +20,15 @@ $(function () {
     var sliderMarginLeft = $(slider).css('marginLeft').replace('px', '');
 
     var i = 0;
+    var stack = [];
+    var currentObject;
+    var backStack = [];
+    var stackSizeMax = 5;
+    var backStackSizeMax = 30;
     var currentMousePos = { x: -1, y: -1 };
-    var queue = [];
+
+    var timer;
+    var backTimer;
 
     // *******************************************************************
     // **                         events                                **
@@ -30,13 +37,14 @@ $(function () {
     $(document).bind('mousedown', function() {isMouseDown = true;});
     $(document).bind('mouseup', function() {isMouseDown = false;});
     $(document).bind('keydown', navKey);
+
     $(b_refresh).bind('click', refresh);
     $(b_play).bind('click', play);
-    $(p_bar).bind('mousedown', moveSlider);
-    $(player).bind('pause play', setPlayPauseIcon);
     $(b_prev).bind('click', prev);
     $(b_next).bind('click', next);
-    $(p_bar).bind('mousemove', move);
+    //$(p_bar).bind('mousemove', move);
+    //$(p_bar).bind('mousedown', moveSlider);
+
     $(document).mousemove(function(event) {
         currentMousePos.x = event.pageX;
         currentMousePos.y = event.pageY;
@@ -47,7 +55,8 @@ $(function () {
     // *******************************************************************
 
     setInterval(function() {setSliderProgress();}, 10);
-    setData(true);
+    currentObject = getObjFromModel(0);
+    applyObject(currentObject, true);
 
     // *******************************************************************
     // **                     navigation and buttons                    **
@@ -65,14 +74,24 @@ $(function () {
         }
     }
 
-    function prev(x) {
-        i--;
-        setData();
+    function prev() {
+        player.pause();
+        var obj = shiftFromStack(backStack);
+        if (obj != false) {
+            unshiftToStack(currentObject, stack);
+            currentObject = obj;
+        }
+        applyObject(currentObject);
     }
 
     function next() {
-        i++;
-        setData();
+        player.pause();
+        var obj = shiftFromStack(stack);
+        if (obj != false) {
+            unshiftToStack(currentObject, backStack);
+            currentObject = obj;
+        }
+        applyObject(currentObject);
     }
 
     function resetSlider() {
@@ -116,9 +135,11 @@ $(function () {
         var pos = currentMousePos.x - pBar_x - sliderWidth/2;
         if (pos >= 0 && pos <= pBar_Width) {
             $(slider).css('margin-left', pos);
-            player.currentTime = player.duration * pos/pBar_Width;
+            var a = player.duration * (pos/pBar_Width);
+            player.currentTime = a;
         }
-        play();
+
+        player.play();
     }
 
     function setSliderProgress() {
@@ -142,29 +163,97 @@ $(function () {
     // **                         data methods                          **
     // *******************************************************************
 
-    function setData(start) {
-        resetSlider();
-        if (i >= 0 && i < model.length) {
-            $(t_area1).text(model[i].text1);
-            $(t_area2).text(model[i].text2);
-            $(player).attr('src', model[i].src);
+    function getObjFromModel(index) {
+        var wrapObject = $(player).clone();
+        var textObject = {};
+
+        if (index == undefined || index < 0 || index >= model.length || model[index] == undefined) { // bug
+            wrapObject.attr('src', '');
+            textObject.text1 = '    The End';
+            textObject.text2 = '    Конец';
         }
-        if (i < 0) i = 0;
-        if (i >= model.length) i = model.length - 1;
-        if (start != true) {
-            refresh();
+        else {
+            wrapObject.attr('src', model[index].src);
+            textObject.text1 = model[index].text1;
+            textObject.text2 = model[index].text2;
+
+            wrapObject.bind('loadeddata', function(event) {
+                loadNext(index + 1);
+            });
+        }
+
+        return { playerObject : wrapObject[0], textObject : textObject};
+    }
+
+    function applyObject(obj, onload) {
+        resetSlider();
+        $(t_area1).text(obj.textObject.text1);
+        $(t_area2).text(obj.textObject.text2);
+        player = obj.playerObject;
+        $(player).bind('pause play', setPlayPauseIcon);
+        if(onload != true) {
+            player.play();
+        }
+        else {
+            obj.playerObject.load();
         }
     }
 
-    var queueSize = 5;
-    function loadQueue() {
-        for (var x = 0; x < model.length && x < queueSize; x++) {
-            var newPlayer = $(player).clone();
-            newPlayer.attr('src', model[x].src);
-            newPlayer.text1 = model[x].text1;
-            newPlayer.text2 = model[x].text2;
-            queue.push(newPlayer);
+    function loadNext(index) {
+        pushToStack(index, stack);
+    }
+
+
+    // *******************************************************************
+    // **                    stack data operations                      **
+    // *******************************************************************
+
+    function pushToStack(index, currentStack) {
+        var currentStackSizeMax = stack == currentStack ? stackSizeMax : backStackSizeMax;
+        if (currentStack.length < currentStackSizeMax) {
+            currentStack.push(getObjFromModel(index));
+            var str = stack == currentStack ? ' stack ' : ' backStack ';
+            console.log('pushed to' + str + index);
+            console.log(currentStack);
+        }
+        else {
+            if (stack == currentStack) {
+                timer = setInterval(function() {stackLooper(currentStack, currentStackSizeMax, index, currentStack);}, 300);
+            }
+            if (backStack == currentStack) {
+                backTimer = setInterval(function() {stackLooper(currentStack, currentStackSizeMax, index, currentStack);}, 300);
+            }
         }
     }
-    
+
+    function stackLooper(currentStack, currentStackSizeMax, index, currentStack) {
+        console.log('looper');
+        if (currentStack.length < currentStackSizeMax) {
+            clearInterval(timer);
+            pushToStack(index, currentStack);
+        }
+    }
+
+    function shiftFromStack(currentStack) {
+        var item = currentStack.shift();
+        if (item === undefined) {
+            return false;
+        }
+        var str = stack == currentStack ? ' stack ' : ' backStack ';
+        return item;
+    }
+
+    function unshiftToStack(item, currentStack) {
+        var currentStackSizeMax = stack == currentStack ? stackSizeMax : backStackSizeMax;
+        currentStack.unshift(item);
+        var str = stack == currentStack ? ' stack ' : ' backStack ';
+        if (currentStack.length > currentStackSizeMax) {
+            currentStack.pop();
+            clearInterval(timer);
+            var lastStackItem = $(currentStack).last().get(0);
+            $(lastStackItem.playerObject).trigger('loadeddata');
+        }
+        console.log('unshifted to' + str);
+        console.log(currentStack);
+    }
 });
