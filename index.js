@@ -27,7 +27,7 @@ $(function () {
     var R_Heap = {data : []};
 
     var stack = [];
-    var stackSizeMax = 5;
+    var stackSizeMax = 2;
 
     var backStack = [];
     var backStackSizeMax = 2;
@@ -85,6 +85,11 @@ $(function () {
             stack.unshift(currentObject);
             if (stack.length > stackSizeMax) {
                 R_Heap.data.unshift(stack.pop());
+                if (R_Heap.data.length > maxRHeapSize) {
+                    var lastItem = $(R_Heap.data.pop()).attr('index') - 1;
+                    loadStatusRH.loadStatus = false;
+                    loadStatusRH.index = lastItem;
+                }
             }
             currentObject = obj;
         }
@@ -251,8 +256,9 @@ $(function () {
     applyObject(currentObject, true);
     var R_Heap_Loop = setInterval(function() {fillStackFromRHeap();}, 3000);
     var L_Heap_Loop = setInterval(function() {fillStackFromLHeap();}, 3000);
-    var maxRHeapSize = 10;
-    var maxLHeapSize = 10;
+    var maxRHeapSize = 2;
+    var maxLHeapSize = 2;
+    var loadStatusRH = {loadStatus : true, index : 0};
 
 
 
@@ -265,6 +271,13 @@ $(function () {
                     R_Heap.data.push(item);
                 }
             }
+            loadStatusRH.loadStatus = true;
+            loadStatusRH.index = index;
+            getLogInfo();
+        }
+        else {
+            loadStatusRH.loadStatus = false;
+            loadStatusRH.index = index;
             getLogInfo();
         }
     }
@@ -325,6 +338,10 @@ $(function () {
                         getLogInfo();
                     }
                 }
+            }
+
+            if (loadStatusRH.loadStatus == false && R_Heap.data.length < maxRHeapSize) {
+                $(R_Heap).trigger('itemLoaded', loadStatusRH.index);
             }
         }
     }
