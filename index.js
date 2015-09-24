@@ -20,14 +20,17 @@ $(function () {
     var sliderMarginLeft = $(slider).css('marginLeft').replace('px', '');
 
     var i = 0;
-    var stack = [];
     var currentObject;
-    var backStack = [];
-    var stackSizeMax = 5;
-    var backStackSizeMax = 2;
     var currentMousePos = { x: -1, y: -1 };
 
-    var timer;
+    var L_Heap = {data : []};
+    var R_Heap = {data : []};
+
+    var stack = [];
+    var stackSizeMax = 5;
+
+    var backStack = [];
+    var backStackSizeMax = 2;
 
     // *******************************************************************
     // **                         events                                **
@@ -49,13 +52,15 @@ $(function () {
         currentMousePos.y = event.pageY;
     });
 
+
+    
+
     // *******************************************************************
     // **                      onload functionality                     **
     // *******************************************************************
 
     setInterval(function() {setSliderProgress();}, 10);
-    currentObject = getObjFromModel(0);
-    applyObject(currentObject, true);
+    
 
     // *******************************************************************
     // **                     navigation and buttons                    **
@@ -63,7 +68,7 @@ $(function () {
 
     function navKey(event) {
         if (event.keyCode == 32) {
-            play();
+            currentObject.get(0)();
         }
         if (event.keyCode == 37) {
             prev();
@@ -74,38 +79,46 @@ $(function () {
     }
 
     function prev() {
-        player.pause();
-        var obj = shiftFromStack(backStack);
-        if (obj != false) {
-            unshiftToStack(currentObject, stack);
+        currentObject.get(0).pause();
+        var obj = backStack.shift();
+        if (obj != undefined) {
+            stack.unshift(currentObject);
+            if (stack.length > stackSizeMax) {
+                R_Heap.data.unshift(stack.pop());
+            }
             currentObject = obj;
         }
         applyObject(currentObject);
+        getLogInfo();
     }
 
     function next() {
-        player.pause();
-        var obj = shiftFromStack(stack);
-        if (obj != false) {
-            unshiftToStack(currentObject, backStack);
+        currentObject.get(0).pause();
+        var obj = stack.shift();
+        if (obj != undefined) {
+            backStack.unshift(currentObject);
+            if (backStack.length > backStackSizeMax) {
+                L_Heap.data.unshift(backStack.pop());
+            }
             currentObject = obj;
+            applyObject(currentObject);
         }
-        applyObject(currentObject);
+        getLogInfo();
     }
 
     function resetSlider() {
-        player.currentTime = 0;
+        currentObject.get(0).currentTime = 0;
         $(slider).css('marginLeft', sliderMarginLeft + 'px');
     }
 
     function refresh() {
-        player.currentTime = 0;
-        player.play();
+        currentObject.get(0).currentTime = 0;
+        currentObject.get(0).play();
     }
 
     function play() {
-        if (player.paused) {
-            player.play();
+        if (currentObject.get(0).paused) {
+            currentObject.get(0).play();
         }
         else {
             pause();
@@ -113,13 +126,13 @@ $(function () {
     }
 
     function pause() {
-        player.pause();
+        currentObject.get(0).pause();
     }
 
     function setPlayPauseIcon(event) {
         var a = event.type;
-        var b = player.paused;
-        if (player.paused) {
+        var b = currentObject.get(0).paused;
+        if (currentObject.get(0).paused) {
             $(b_play).css('background-image', 'url(images/play.png)');
         }
         else {
@@ -142,9 +155,9 @@ $(function () {
     }
 
     function setSliderProgress() {
-        if (!player.paused) {
+        if (!currentObject.get(0).paused) {
             var pos = $(p_bar).css('width').replace('px', '') - sliderWidth - 2;
-            var position = pos * player.currentTime/player.duration + 2;
+            var position = pos * currentObject.get(0).currentTime/currentObject.get(0).duration + 2;
             $(slider).css('margin-left', position);
         }
     }
@@ -163,114 +176,188 @@ $(function () {
     // *******************************************************************
 
     function getObjFromModel(index) {
-        var wrapObject = $(player).clone();
-        var textObject = {};
 
-        if (index == undefined || index < 0 || index >= model.length || model[index] == undefined) {
-            wrapObject.attr('src', '');
-            textObject.text1 = '    The End';
-            textObject.text2 = '    Конец';
-        }
-        else {
+        var wrapObject = $(player).clone();
+
+        if (index >= 0 && index < model.length) {
             wrapObject.attr('src', model[index].src);
-            textObject.text1 = model[index].text1;
-            textObject.text2 = model[index].text2;
+            wrapObject.attr('text1', model[index].text1);
+            wrapObject.attr('text2', model[index].text2);
+            wrapObject.attr('index', index);
 
             wrapObject.bind('loadeddata', function(event) {
-                loadNext(index + 1, stack);
+                $(R_Heap).trigger('itemLoaded', index);
             });
-        }
 
-        return { playerObject : wrapObject[0], textObject : textObject, index : index};
+            return wrapObject;
+        }
     }
 
     function applyObject(obj, onload) {
         resetSlider();
-        $(t_area1).text(obj.textObject.text1);
-        $(t_area2).text(obj.textObject.text2);
-        player = obj.playerObject;
-        $(player).bind('pause play', setPlayPauseIcon);
+        $(t_area1).text(obj.attr('text1'));
+        $(t_area2).text(obj.attr('text2'));
+        obj.bind('pause play', setPlayPauseIcon);
         if(onload != true) {
-            player.play();
+            obj.get(0).play();
         }
         else {
-            obj.playerObject.load();
+            obj.get(0).load();
         }
         getLogInfo();
     }
-
-    function loadNext(index, currentStack) {
-        pushToStack(index, currentStack);
-    }
-
-    function getLogInfo() {
-        var logString = '';
-        backStack.forEach(function(item) {
-            logString = '[' + item.index + ']' + logString;
-        });
-        for (var a = backStack.length; a < backStackSizeMax; a++) {
-            logString = '[-]' + logString;
-        }
-        logString += ' (' + currentObject.index + ') ';
-        stack.forEach(function(item) {
-            logString += '[' + item.index + ']';
-        });
-        for (var a = stack.length; a < stackSizeMax; a++) {
-            logString += '[-]';
-        }
-        console.clear();
-        console.log(logString);
-    }
+    
 
 
     // *******************************************************************
     // **                    stack data operations                      **
     // *******************************************************************
 
-    function pushToStack(index, currentStack) {
-        var currentStackSizeMax = stack == currentStack ? stackSizeMax : backStackSizeMax;
-        if (currentStack.length < currentStackSizeMax) {
-            currentStack.push(getObjFromModel(index));
+    function getLogInfo() {
+        var logString = '';
+        backStack.forEach(function(item) {
+            logString = '[' + item.attr('index') + ']' + logString;
+        });
+        for (var a = backStack.length; a < backStackSizeMax; a++) {
+            logString = '[-]' + logString;
         }
-        else {
-            if (stack == currentStack) {
-                timer = setInterval(function() {stackLooper(currentStack, currentStackSizeMax, index, currentStack);}, 300);
-            }
+        logString += ' (' + currentObject.attr('index') + ') ';
+        stack.forEach(function(item) {
+            logString += '[' + item.attr('index') + ']';
+        });
+        for (var a = stack.length; a < stackSizeMax; a++) {
+            logString += '[-]';
         }
-        getLogInfo();
+        console.clear();
+        console.log(logString);
+
+        logString = '';
+        L_Heap.data.forEach(function(item) {
+            logString += '[' + item.attr('index') + ']';
+        });
+
+        console.log('L_Heap ' + logString);
+
+        logString = '';
+        R_Heap.data.forEach(function(item) {
+            logString += '[' + item.attr('index') + ']';
+        });
+
+        console.log('R_Heap ' + logString);
     }
 
-    function stackLooper(currentStack, currentStackSizeMax, index, currentStack) {
-        //console.log('looper');
-        if (currentStack.length < currentStackSizeMax) {
-            if (currentStack == stack) {
-                clearInterval(timer);
+
+    currentObject = getObjFromModel(0);
+    applyObject(currentObject, true);
+    var R_Heap_Loop = setInterval(function() {fillStackFromRHeap();}, 3000);
+    var L_Heap_Loop = setInterval(function() {fillStackFromLHeap();}, 3000);
+    var maxRHeapSize = 10;
+    var maxLHeapSize = 10;
+
+
+
+
+    function onItemLoaded(event, index) {
+        if (R_Heap.data.length < maxRHeapSize) {
+            var item = getObjFromModel(index + 1);
+            if (item != undefined) {
+                if (!isContains(R_Heap.data, item)) {
+                    R_Heap.data.push(item);
+                }
             }
-            pushToStack(index, currentStack);
+            getLogInfo();
         }
     }
 
-    function shiftFromStack(currentStack) {
-        var item = currentStack.shift();
-        if (item === undefined) {
-            return false;
+    function onItemLoaded2(event, index) {
+        if (L_Heap.data.length < maxLHeapSize) {
+            if (index > 0) {
+                var item = getObjFromModel(index - 1);
+                if (item != undefined) {
+                    if (!isContains(L_Heap.data, item)) {
+                        L_Heap.data.push(item);
+                    }
+                }
+            }
+            getLogInfo();
         }
-        getLogInfo();
-        return item;
     }
 
-    function unshiftToStack(item, currentStack) {
-        var currentStackSizeMax = stack == currentStack ? stackSizeMax : backStackSizeMax;
-        currentStack.unshift(item);
-        var str = stack == currentStack ? ' stack ' : ' backStack ';
-        if (currentStack.length > currentStackSizeMax) {
-            currentStack.pop();
-            if (stack == currentStack) {
-                clearInterval(timer);
-                var lastStackItem = $(currentStack).last().get(0);
-                $(lastStackItem.playerObject).trigger('loadeddata');
+    function isContains(array, item) {
+        for (var j = 0; j < array.length; j++) {
+                var a = $(array[j]).attr('index');
+                var b = $(item).attr('index');
+            if ($(array[j]).attr('index') == $(item).attr('index')) {
+                return true;
             }
         }
-        getLogInfo();
+        return false;
     }
+
+    $(R_Heap).bind('itemLoaded', function(event, index){
+        onItemLoaded(event, index);
+    });
+
+    $(L_Heap).bind('itemLoaded', function(event, index){
+        onItemLoaded2(event, index);
+    });
+
+    function fillStackFromRHeap() {
+
+        if(R_Heap.data.length != 0) {
+            var lastStackItem = $(stack).last()[0];
+            
+            if (lastStackItem == undefined) {
+                lastStackItem = currentObject;
+            }
+            var lastIndex = lastStackItem.attr('index');
+
+            for (var j = 0; j < R_Heap.data.length; j++) {
+                var currentIndex = R_Heap.data[j].attr('index');
+                var a = currentIndex - 1;
+                var b = lastIndex;
+                if (a == b) {
+                    if (stack.length < stackSizeMax) {
+                        stack.push(R_Heap.data[j]);
+                        R_Heap.data.splice(j, 1);
+                        lastIndex++;
+                        j--;
+                        getLogInfo();
+                    }
+                }
+            }
+        }
+    }
+
+    function fillStackFromLHeap() {
+
+        if(L_Heap.data.length != 0) {
+            var lastStackItem = $(backStack).last()[0];
+            
+            if (lastStackItem == undefined) {
+                lastStackItem = currentObject;
+            }
+            var lastIndex = lastStackItem.attr('index');
+
+            for (var j = 0; j < L_Heap.data.length; j++) {
+                var currentIndex = L_Heap.data[j].attr('index');
+                var a = parseInt(currentIndex);
+                a = a + 1;
+                var b = lastIndex;
+                if (a == b) {
+                    if (backStack.length < backStackSizeMax) {
+                        backStack.push(L_Heap.data[j]);
+                        L_Heap.data.splice(j, 1);
+                        lastIndex--;
+                        j--;
+                        getLogInfo();
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
 });
