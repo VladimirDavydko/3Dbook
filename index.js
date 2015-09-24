@@ -31,6 +31,7 @@ $(function () {
 
     var backStack = [];
     var backStackSizeMax = 2;
+    var clearLog = true;
 
     // *******************************************************************
     // **                         events                                **
@@ -59,7 +60,7 @@ $(function () {
     // **                      onload functionality                     **
     // *******************************************************************
 
-    setInterval(function() {setSliderProgress();}, 10);
+    setInterval(function() {setSliderProgress()}, 10);
     
 
     // *******************************************************************
@@ -68,7 +69,7 @@ $(function () {
 
     function navKey(event) {
         if (event.keyCode == 32) {
-            currentObject.get(0)();
+            play();
         }
         if (event.keyCode == 37) {
             prev();
@@ -104,6 +105,11 @@ $(function () {
             backStack.unshift(currentObject);
             if (backStack.length > backStackSizeMax) {
                 L_Heap.data.unshift(backStack.pop());
+                if (L_Heap.data.length > maxLHeapSize) {
+                    var lastItem = $(L_Heap.data.pop()).attr('index') - 1;
+                    loadStatusLH.loadStatus = false;
+                    loadStatusLH.index = lastItem;
+                }
             }
             currentObject = obj;
             applyObject(currentObject);
@@ -147,6 +153,7 @@ $(function () {
 
     function moveSlider(event) {
         pause();
+        /*
         var pBar_x = $(p_bar).offset().left;
         var pBar_Width = $(p_bar).css('width').replace('px', '') - sliderWidth;
         var pos = currentMousePos.x - pBar_x - sliderWidth/2;
@@ -154,9 +161,10 @@ $(function () {
             $(slider).css('margin-left', pos);
             var a = player.duration * (pos/pBar_Width);
             player.currentTime = a;
-        }
+        }*/
+        currentObject[0].currentTime = 3;
 
-        player.play();
+        play();
     }
 
     function setSliderProgress() {
@@ -233,7 +241,9 @@ $(function () {
         for (var a = stack.length; a < stackSizeMax; a++) {
             logString += '[-]';
         }
-        console.clear();
+        if (clearLog){
+            console.clear();
+        }
         console.log(logString);
 
         logString = '';
@@ -254,11 +264,12 @@ $(function () {
 
     currentObject = getObjFromModel(0);
     applyObject(currentObject, true);
-    var R_Heap_Loop = setInterval(function() {fillStackFromRHeap();}, 3000);
-    var L_Heap_Loop = setInterval(function() {fillStackFromLHeap();}, 3000);
+    var R_Heap_Loop = setInterval(function() {fillStackFromRHeap();}, 500);
+    var L_Heap_Loop = setInterval(function() {fillStackFromLHeap();}, 500);
     var maxRHeapSize = 2;
     var maxLHeapSize = 2;
     var loadStatusRH = {loadStatus : true, index : 0};
+    var loadStatusLH = {loadStatus : true, index : 0};
 
 
 
@@ -349,12 +360,13 @@ $(function () {
     function fillStackFromLHeap() {
 
         if(L_Heap.data.length != 0) {
-            var lastStackItem = $(backStack).last()[0];
+            var lastStackItem = $(backStack).last().get(0);
             
             if (lastStackItem == undefined) {
                 lastStackItem = currentObject;
             }
             var lastIndex = lastStackItem.attr('index');
+            var pushed = false;
 
             for (var j = 0; j < L_Heap.data.length; j++) {
                 var currentIndex = L_Heap.data[j].attr('index');
@@ -368,8 +380,13 @@ $(function () {
                         lastIndex--;
                         j--;
                         getLogInfo();
+                        pushed = true;
                     }
                 }
+            }
+            lastIndex = $(backStack).last().get(0).attr('index');
+            if (L_Heap.data.length == 0 && pushed == true && lastIndex > 0) {
+                $(L_Heap).trigger('itemLoaded', lastIndex);
             }
         }
     }
