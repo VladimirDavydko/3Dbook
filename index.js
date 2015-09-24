@@ -24,11 +24,10 @@ $(function () {
     var currentObject;
     var backStack = [];
     var stackSizeMax = 5;
-    var backStackSizeMax = 30;
+    var backStackSizeMax = 2;
     var currentMousePos = { x: -1, y: -1 };
 
     var timer;
-    var backTimer;
 
     // *******************************************************************
     // **                         events                                **
@@ -167,7 +166,7 @@ $(function () {
         var wrapObject = $(player).clone();
         var textObject = {};
 
-        if (index == undefined || index < 0 || index >= model.length || model[index] == undefined) { // bug
+        if (index == undefined || index < 0 || index >= model.length || model[index] == undefined) {
             wrapObject.attr('src', '');
             textObject.text1 = '    The End';
             textObject.text2 = '    Конец';
@@ -178,11 +177,11 @@ $(function () {
             textObject.text2 = model[index].text2;
 
             wrapObject.bind('loadeddata', function(event) {
-                loadNext(index + 1);
+                loadNext(index + 1, stack);
             });
         }
 
-        return { playerObject : wrapObject[0], textObject : textObject};
+        return { playerObject : wrapObject[0], textObject : textObject, index : index};
     }
 
     function applyObject(obj, onload) {
@@ -197,10 +196,30 @@ $(function () {
         else {
             obj.playerObject.load();
         }
+        getLogInfo();
     }
 
-    function loadNext(index) {
-        pushToStack(index, stack);
+    function loadNext(index, currentStack) {
+        pushToStack(index, currentStack);
+    }
+
+    function getLogInfo() {
+        var logString = '';
+        backStack.forEach(function(item) {
+            logString = '[' + item.index + ']' + logString;
+        });
+        for (var a = backStack.length; a < backStackSizeMax; a++) {
+            logString = '[-]' + logString;
+        }
+        logString += ' (' + currentObject.index + ') ';
+        stack.forEach(function(item) {
+            logString += '[' + item.index + ']';
+        });
+        for (var a = stack.length; a < stackSizeMax; a++) {
+            logString += '[-]';
+        }
+        console.clear();
+        console.log(logString);
     }
 
 
@@ -212,24 +231,21 @@ $(function () {
         var currentStackSizeMax = stack == currentStack ? stackSizeMax : backStackSizeMax;
         if (currentStack.length < currentStackSizeMax) {
             currentStack.push(getObjFromModel(index));
-            var str = stack == currentStack ? ' stack ' : ' backStack ';
-            console.log('pushed to' + str + index);
-            console.log(currentStack);
         }
         else {
             if (stack == currentStack) {
                 timer = setInterval(function() {stackLooper(currentStack, currentStackSizeMax, index, currentStack);}, 300);
             }
-            if (backStack == currentStack) {
-                backTimer = setInterval(function() {stackLooper(currentStack, currentStackSizeMax, index, currentStack);}, 300);
-            }
         }
+        getLogInfo();
     }
 
     function stackLooper(currentStack, currentStackSizeMax, index, currentStack) {
-        console.log('looper');
+        //console.log('looper');
         if (currentStack.length < currentStackSizeMax) {
-            clearInterval(timer);
+            if (currentStack == stack) {
+                clearInterval(timer);
+            }
             pushToStack(index, currentStack);
         }
     }
@@ -239,7 +255,7 @@ $(function () {
         if (item === undefined) {
             return false;
         }
-        var str = stack == currentStack ? ' stack ' : ' backStack ';
+        getLogInfo();
         return item;
     }
 
@@ -249,11 +265,12 @@ $(function () {
         var str = stack == currentStack ? ' stack ' : ' backStack ';
         if (currentStack.length > currentStackSizeMax) {
             currentStack.pop();
-            clearInterval(timer);
-            var lastStackItem = $(currentStack).last().get(0);
-            $(lastStackItem.playerObject).trigger('loadeddata');
+            if (stack == currentStack) {
+                clearInterval(timer);
+                var lastStackItem = $(currentStack).last().get(0);
+                $(lastStackItem.playerObject).trigger('loadeddata');
+            }
         }
-        console.log('unshifted to' + str);
-        console.log(currentStack);
+        getLogInfo();
     }
 });
